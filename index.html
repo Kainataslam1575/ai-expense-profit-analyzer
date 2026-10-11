@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Expense & Profit Analyzer</title>
+  <style>
+    :root {
+      --navy: #12366b;
+      --blue: #2163d5;
+      --blue-light: #eaf2ff;
+      --ink: #18243b;
+      --muted: #68758b;
+      --line: #e5eaf2;
+      --bg: #f5f8fd;
+      --green: #13845b;
+      --red: #c54444;
+      --white: #fff;
+      --shadow: 0 8px 28px rgba(27, 55, 100, .07);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    .topbar { background: linear-gradient(115deg, #12366b, #2163d5); color: white; padding: 22px 24px; }
+    .topbar-inner { max-width: 1200px; margin: auto; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+    .brand { display: flex; gap: 12px; align-items: center; }
+    .brand-icon { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px; background: rgba(255,255,255,.16); font-size: 23px; }
+    h1 { margin: 0; font-size: clamp(20px, 3vw, 27px); line-height: 1.2; letter-spacing: -.5px; }
+    .subtitle { margin: 5px 0 0; color: #dce8ff; font-size: 13px; }
+    .local-pill { border: 1px solid rgba(255,255,255,.3); background: rgba(255,255,255,.12); border-radius: 999px; padding: 8px 12px; font-size: 12px; white-space: nowrap; }
+    main { max-width: 1200px; margin: 26px auto 50px; padding: 0 22px; }
+    .section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 25px 0 14px; }
+    h2 { font-size: 18px; margin: 0; letter-spacing: -.2px; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .cards { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 15px; }
+    .card, .panel { background: var(--white); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+    .metric { padding: 19px; min-width: 0; }
+    .metric-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .metric-label { color: var(--muted); font-size: 13px; font-weight: 600; }
+    .metric-icon { display: grid; place-items: center; width: 35px; height: 35px; border-radius: 11px; background: var(--blue-light); color: var(--blue); font-size: 17px; }
+    .metric-value { font-size: clamp(19px, 2.3vw, 26px); font-weight: 750; letter-spacing: -.7px; margin: 12px 0 2px; overflow-wrap: anywhere; }
+    .metric-note { color: var(--muted); font-size: 12px; }
+    .green { color: var(--green) !important; }
+    .red { color: var(--red) !important; }
+    .layout { display: grid; grid-template-columns: 360px minmax(0,1fr); gap: 18px; align-items: start; }
+    .panel { padding: 20px; }
+    .panel h2 { margin-bottom: 5px; }
+    .field { margin-top: 15px; }
+    label { display: block; font-size: 13px; font-weight: 650; margin-bottom: 6px; color: #34425a; }
+    input, select { width: 100%; border: 1px solid #d8e0ed; background: #fff; color: var(--ink); border-radius: 10px; padding: 11px 12px; outline: none; transition: border .15s, box-shadow .15s; }
+    input:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(33,99,213,.12); }
+    .type-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; padding: 5px; background: #f0f4fa; border-radius: 12px; }
+    .type-switch button { border: 0; border-radius: 9px; padding: 9px; background: transparent; color: var(--muted); font-weight: 700; }
+    .type-switch button.active.income { background: #e0f6eb; color: var(--green); box-shadow: 0 2px 5px #0000000a; }
+    .type-switch button.active.expense { background: #ffebeb; color: var(--red); box-shadow: 0 2px 5px #0000000a; }
+    .btn { border: 0; border-radius: 10px; padding: 11px 15px; font-weight: 700; }
+    .btn-primary { background: var(--blue); color: white; width: 100%; margin-top: 18px; box-shadow: 0 5px 12px #2163d52a; }
+    .btn-primary:hover { background: #174fb3; }
+    .btn-light { background: var(--blue-light); color: var(--blue); }
+    .btn-danger { background: #fff0f0; color: var(--red); }
+    .form-actions { display: flex; gap: 8px; }
+    .form-actions .btn-primary { flex: 1; }
+    .form-actions .btn-light { margin-top: 18px; }
+    .table-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .filters { display: flex; gap: 8px; }
+    .filters select { min-width: 135px; padding: 9px; }
+    .table-wrap { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; min-width: 590px; }
+    th { text-align: left; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .7px; padding: 12px 10px; background: #f8faff; border-bottom: 1px solid var(--line); }
+    td { padding: 13px 10px; border-bottom: 1px solid #edf0f6; font-size: 13px; vertical-align: middle; }
+    tr:last-child td { border-bottom: 0; }
+    .desc { font-weight: 700; color: #24324b; }
+    .category { display: inline-block; border-radius: 999px; padding: 4px 8px; background: #f0f4fa; color: #53627a; font-size: 11px; white-space: nowrap; }
+    .amount { font-weight: 750; white-space: nowrap; }
+    .row-actions { display: flex; gap: 6px; }
+    .icon-btn { border: 1px solid var(--line); border-radius: 8px; background: white; padding: 6px 8px; font-size: 12px; }
+    .icon-btn:hover { background: #f2f6ff; }
+    .empty { text-align: center; padding: 38px 12px; color: var(--muted); }
+    .empty-icon { font-size: 30px; margin-bottom: 6px; }
+    .insight { margin-top: 18px; background: linear-gradient(120deg, #eef5ff, #f8fbff); border: 1px solid #dce8fb; border-radius: 14px; padding: 17px; }
+    .insight-title { display: flex; align-items: center; gap: 8px; font-weight: 750; margin-bottom: 7px; color: var(--navy); }
+    .insight p { margin: 0; color: #4c5c75; font-size: 13px; }
+    .bottom-row { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-top: 16px; flex-wrap: wrap; }
+    .footnote { font-size: 12px; color: var(--muted); }
+    .toast { position: fixed; right: 20px; bottom: 20px; background: #173c72; color: white; padding: 12px 17px; border-radius: 12px; box-shadow: var(--shadow); opacity: 0; transform: translateY(10px); transition: .2s; pointer-events: none; z-index: 10; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .modal-backdrop { display: none; position: fixed; inset: 0; background: #10213b66; align-items: center; justify-content: center; padding: 20px; z-index: 20; }
+    .modal-backdrop.show { display: flex; }
+    .modal { max-width: 430px; width: 100%; background: white; border-radius: 16px; padding: 22px; box-shadow: 0 18px 60px #10213b40; }
+    .modal h2 { margin-bottom: 10px; }
+    .modal p { color: var(--muted); font-size: 14px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+    @media (max-width: 950px) { .cards { grid-template-columns: repeat(2, minmax(0,1fr)); } .layout { grid-template-columns: 1fr; } }
+    @media (max-width: 560px) { .topbar { padding: 18px 15px; } .topbar-inner { align-items: flex-start; flex-direction: column; } main { padding: 0 13px; margin-top: 18px; } .cards { gap: 10px; } .metric { padding: 14px; } .metric-icon { width: 30px; height: 30px; } .panel { padding: 15px; } .section-head { align-items: flex-start; flex-direction: column; } .filters { width: 100%; } .filters select { min-width: 0; flex: 1; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">📊</div>
+        <div>
+          <h1>AI Expense &amp; Profit Analyzer</h1>
+          <p class="subtitle">A clearer view of your business finances</p>
+        </div>
+      </div>
+      <div class="local-pill">🔒 Saved on this device</div>
+    </div>
+  </header>
+
+  <main>
+    <div class="section-head">
+      <div>
+        <h2>Business overview</h2>
+        <div class="muted">Track your money and understand your performance.</div>
+      </div>
+      <button class="btn btn-light" id="exportBtn">↓ Export CSV</button>
+    </div>
+
+    <section class="cards" aria-label="Financial summary">
+      <div class="card metric">
+        <div class="metric-top"><span class="metric-label">Total income</span><span class="metric-icon">↗</span></div>
+        <div class="metric-value green" id="totalIncome">PKR 0</div>
+        <div class="metric-note">Money received</div>
+      </div>
+      <div class="card metric">
+        <div class="metric-top"><span class="metric-label">Total expenses</span><span class="metric-icon">↘</span></div>
+        <div class="metric-value red" id="totalExpenses">PKR 0</div>
+        <div class="metric-note">Money spent</div>
+      </div>
+      <div class="card metric">
+        <div class="metric-top"><span class="metric-label">Net profit</span><span class="metric-icon">◆</span></div>
+        <div class="metric-value" id="netProfit">PKR 0</div>
+        <div class="metric-note">Income minus expenses</div>
+      </div>
+      <div class="card metric">
+        <div class="metric-top"><span class="metric-label">Profit margin</span><span class="metric-icon">％</span></div>
+        <div class="metric-value" id="profitMargin">0%</div>
+        <div class="metric-note">Profit as a share of income</div>
+      </div>
+    </section>
+
+    <div class="section-head"><div><h2>Manage transactions</h2><div class="muted">Add each income or expense as it happens.</div></div></div>
+    <section class="layout">
+      <div class="panel">
+        <h2 id="formTitle">Add a transaction</h2>
+        <div class="muted">Fields marked below are required.</div>
+        <div class="type-switch" role="group" aria-label="Transaction type">
+          <button type="button" id="incomeTab" class="active income">＋ Income</button>
+          <button type="button" id="expenseTab">− Expense</button>
+        </div>
+        <form id="transactionForm">
+          <div class="field">
+            <label for="description">Description</label>
+            <input id="description" name="description" placeholder="e.g. Product sales" maxlength="100" required />
+          </div>
+          <div class="field">
+            <label for="amount">Amount (PKR)</label>
+            <input id="amount" name="amount" type="number" min="0.01" step="0.01" placeholder="e.g. 15000" required />
+          </div>
+          <div class="field">
+            <label for="category">Category</label>
+            <select id="category" name="category" required></select>
+          </div>
+          <div class="field">
+            <label for="date">Date</label>
+            <input id="date" name="date" type="date" required />
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" type="submit" id="saveBtn">＋ Add transaction</button>
+            <button class="btn btn-light" type="button" id="cancelEditBtn" hidden>Cancel</button>
+          </div>
+        </form>
+        <div class="insight">
+          <div class="insight-title"><span>✨</span> Business insight</div>
+          <p id="insightText">Add a few transactions to see a helpful summary of your business finances.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="table-head">
+          <div><h2>Recent transactions</h2><div class="muted" id="transactionCount">0 records</div></div>
+          <div class="filters">
+            <select id="monthFilter" aria-label="Filter by month"><option value="all">All months</option></select>
+            <select id="typeFilter" aria-label="Filter by transaction type">
+              <option value="all">All types</option><option value="income">Income</option><option value="expense">Expenses</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Amount</th><th>Actions</th></tr></thead>
+            <tbody id="transactionsBody"></tbody>
+          </table>
+          <div id="emptyState" class="empty" hidden><div class="empty-icon">🧾</div><strong>No transactions found</strong><div class="muted">Add a transaction or change your filters.</div></div>
+        </div>
+        <div class="bottom-row">
+          <span class="footnote">Your records stay in this browser on this device.</span>
+          <button class="btn btn-danger" type="button" id="clearBtn">Clear all data</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="modal-backdrop" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <h2 id="modalTitle">Clear all transactions?</h2>
+      <p>This will permanently remove the saved transactions from this browser. You cannot undo this action.</p>
+      <div class="modal-actions">
+        <button class="btn btn-light" id="keepDataBtn">Cancel</button>
+        <button class="btn btn-danger" id="confirmClearBtn">Clear data</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+      const STORAGE_KEY = "aiExpenseProfitAnalyzer.transactions.v1";
+      const today = () => new Date().toISOString().slice(0, 10);
+      const money = value => new Intl.NumberFormat("en-PK", {
+        style: "currency", currency: "PKR", maximumFractionDigits: 2
+      }).format(value).replace("PKR", "PKR");
+      const formatDate = value => {
+        if (!value) return "";
+        const [year, month, day] = value.split("-").map(Number);
+        return new Date(year, month - 1, day).toLocaleDateString("en-PK", { day: "2-digit", month: "short", year: "numeric" });
+      };
+      const uid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
+
+      const sampleTransactions = [
+        { id: uid(), type: "income", description: "Product sales", category: "Sales", amount: 150000, date: today() },
+        { id: uid(), type: "expense", description: "Stock purchase", category: "Inventory", amount: 55000, date: today() },
+        { id: uid(), type: "expense", description: "Shop rent", category: "Rent", amount: 25000, date: today() },
+        { id: uid(), type: "expense", description: "Electricity bill", category: "Utilities", amount: 8000, date: today() },
+        { id: uid(), type: "income", description: "Service income", category: "Services", amount: 20000, date: today() }
+      ];
+      const incomeCategories = ["Sales", "Services", "Other income"];
+      const expenseCategories = ["Inventory", "Rent", "Salaries", "Utilities", "Transport", "Marketing", "Equipment", "Other expense"];
+
+      let transactions = loadTransactions();
+      let selectedType = "income";
+      let editingId = null;
+      let toastTimer = null;
+
+      const $ = id => document.getElementById(id);
+      function loadTransactions() {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved === null) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(sampleTransactions));
+            return sampleTransactions.slice();
+          }
+          const parsed = JSON.parse(saved);
+          return Array.isArray(parsed) ? parsed.filter(isValidTransaction) : [];
+        } catch (error) {
+          console.warn("Could not load local data:", error);
+          return sampleTransactions.slice();
+        }
+      }
+      function isValidTransaction(item) {
+        return item && typeof item.id === "string" &&
+          (item.type === "income" || item.type === "expense") &&
+          typeof item.description === "string" && typeof item.category === "string" &&
+          Number.isFinite(Number(item.amount)) && Number(item.amount) > 0 &&
+          /^\d{4}-\d{2}-\d{2}$/.test(item.date);
+      }
+      function saveTransactions() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+          return true;
+        } catch (error) {
+          showToast("Could not save data. Browser storage may be full or disabled.");
+          console.error(error);
+          return false;
+        }
+      }
+      function showToast(message) {
+        const toast = $("toast");
+        toast.textContent = message;
+        toast.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
+      }
+      function totals(list = transactions) {
+        const income = list.filter(t => t.type === "income").reduce((sum, t) => sum + Number(t.amount), 0);
+        const expenses = list.filter(t => t.type === "expense").reduce((sum, t) => sum + Number(t.amount), 0);
+        const profit = income - expenses;
+        const margin = income > 0 ? (profit / income) * 100 : 0;
+        return { income, expenses, profit, margin };
+      }
+      function renderSummary() {
+        const { income, expenses, profit, margin } = totals();
+        $("totalIncome").textContent = money(income);
+        $("totalExpenses").textContent = money(expenses);
+        $("netProfit").textContent = money(profit);
+        $("netProfit").className = "metric-value " + (profit >= 0 ? "green" : "red");
+        $("profitMargin").textContent = `${margin.toFixed(2)}%`;
+        $("profitMargin").className = "metric-value " + (margin >= 0 ? "green" : "red");
+        if (!transactions.length) {
+          $("insightText").textContent = "No transactions yet. Add your income and expenses to start understanding your business.";
+        } else if (income === 0 && expenses > 0) {
+          $("insightText").textContent = `You have recorded ${money(expenses)} in expenses but no income yet. Add any sales or income records to calculate your profit margin.`;
+        } else if (profit < 0) {
+          $("insightText").textContent = `Your recorded expenses are ${money(Math.abs(profit))} higher than your income. Review your largest costs and check whether all income has been entered.`;
+        } else if (profit === 0) {
+          $("insightText").textContent = "Your income and expenses are currently equal. Review your costs and pricing to look for ways to increase profit.";
+        } else {
+          $("insightText").textContent = `Your recorded net profit is ${money(profit)} with a ${margin.toFixed(2)}% profit margin. Review expense categories regularly to identify potential savings.`;
+        }
+      }
+      function setType(type) {
+        selectedType = type;
+        $("incomeTab").classList.toggle("active", type === "income");
+        $("incomeTab").classList.toggle("income", type === "income");
+        $("expenseTab").classList.toggle("active", type === "expense");
+        $("expenseTab").classList.toggle("expense", type === "expense");
+        const categories = type === "income" ? incomeCategories : expenseCategories;
+        const previous = $("category").value;
+        $("category").innerHTML = categories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+        if (categories.includes(previous)) $("category").value = previous;
+      }
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, char => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+        }[char]));
+      }
+      function refreshMonthFilter() {
+        const select = $("monthFilter");
+        const current = select.value;
+        const months = [...new Set(transactions.map(t => t.date.slice(0, 7)))].sort().reverse();
+        select.innerHTML = '<option value="all">All months</option>' + months.map(m => {
+          const [year, month] = m.split("-").map(Number);
+          const label = new Date(year, month - 1, 1).toLocaleDateString("en-PK", { month: "long", year: "numeric" });
+          return `<option value="${m}">${escapeHtml(label)}</option>`;
+        }).join("");
+        if (months.includes(current)) select.value = current;
+      }
+      function filteredTransactions() {
+        const month = $("monthFilter").value;
+        const type = $("typeFilter").value;
+        return transactions.filter(t =>
+          (month === "all" || t.date.startsWith(month)) &&
+          (type === "all" || t.type === type)
+        ).sort((a, b) => b.date.localeCompare(a.date));
+      }
+      function renderTransactions() {
+        const list = filteredTransactions();
+        $("transactionCount").textContent = `${list.length} record${list.length === 1 ? "" : "s"}`;
+        $("transactionsBody").innerHTML = list.map(t => `
+          <tr>
+            <td>${escapeHtml(formatDate(t.date))}</td>
+            <td><div class="desc">${escapeHtml(t.description)}</div><div class="muted">${t.type === "income" ? "Income" : "Expense"}</div></td>
+            <td><span class="category">${escapeHtml(t.category)}</span></td>
+            <td class="amount ${t.type === "income" ? "green" : "red"}">${t.type === "income" ? "+" : "−"}${escapeHtml(money(Number(t.amount)))}</td>
+            <td><div class="row-actions"><button class="icon-btn" type="button" data-edit="${escapeHtml(t.id)}" aria-label="Edit ${escapeHtml(t.description)}">Edit</button><button class="icon-btn" type="button" data-delete="${escapeHtml(t.id)}" aria-label="Delete ${escapeHtml(t.description)}">Delete</button></div></td>
+          </tr>`).join("");
+        $("emptyState").hidden = list.length !== 0;
+        $("transactionsBody").parentElement.style.display = list.length ? "table" : "none";
+      }
+      function render() {
+        renderSummary();
+        refreshMonthFilter();
+        renderTransactions();
+      }
+      function resetForm() {
+        editingId = null;
+        $("transactionForm").reset();
+        $("date").value = today();
+        $("formTitle").textContent = "Add a transaction";
+        $("saveBtn").textContent = "＋ Add transaction";
+        $("cancelEditBtn").hidden = true;
+        setType("income");
+      }
+      function startEdit(id) {
+        const t = transactions.find(item => item.id === id);
+        if (!t) return;
+        editingId = id;
+        setType(t.type);
+        $("description").value = t.description;
+        $("amount").value = t.amount;
+        $("category").value = t.category;
+        $("date").value = t.date;
+        $("formTitle").textContent = "Edit transaction";
+        $("saveBtn").textContent = "Save changes";
+        $("cancelEditBtn").hidden = false;
+        $("description").focus();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      $("incomeTab").addEventListener("click", () => setType("income"));
+      $("expenseTab").addEventListener("click", () => setType("expense"));
+      $("cancelEditBtn").addEventListener("click", resetForm);
+      $("transactionForm").addEventListener("submit", event => {
+        event.preventDefault();
+        const description = $("description").value.trim();
+        const amount = Number($("amount").value);
+        const category = $("category").value;
+        const date = $("date").value;
+        if (!description || !Number.isFinite(amount) || amount <= 0 || !date || !category) {
+          showToast("Please enter a description, valid amount, category, and date.");
+          return;
+        }
+        const item = { id: editingId || uid(), type: selectedType, description, amount, category, date };
+        if (editingId) {
+          transactions = transactions.map(t => t.id === editingId ? item : t);
+        } else {
+          transactions.push(item);
+        }
+        if (saveTransactions()) {
+          render();
+          resetForm();
+          showToast(editingId ? "Transaction updated." : "Transaction added.");
+        }
+      });
+      $("transactionsBody").addEventListener("click", event => {
+        const editButton = event.target.closest("[data-edit]");
+        const deleteButton = event.target.closest("[data-delete]");
+        if (editButton) startEdit(editButton.dataset.edit);
+        if (deleteButton) {
+          const item = transactions.find(t => t.id === deleteButton.dataset.delete);
+          if (!item) return;
+          if (confirm(`Delete "${item.description}"? This cannot be undone.`)) {
+            transactions = transactions.filter(t => t.id !== item.id);
+            saveTransactions();
+            render();
+            if (editingId === item.id) resetForm();
+            showToast("Transaction deleted.");
+          }
+        }
+      });
+      $("monthFilter").addEventListener("change", renderTransactions);
+      $("typeFilter").addEventListener("change", renderTransactions);
+      $("clearBtn").addEventListener("click", () => $("confirmModal").classList.add("show"));
+      $("keepDataBtn").addEventListener("click", () => $("confirmModal").classList.remove("show"));
+      $("confirmClearBtn").addEventListener("click", () => {
+        transactions = [];
+        saveTransactions();
+        $("confirmModal").classList.remove("show");
+        resetForm();
+        render();
+        showToast("All transactions cleared.");
+      });
+      $("confirmModal").addEventListener("click", event => {
+        if (event.target === $("confirmModal")) $("confirmModal").classList.remove("show");
+      });
+      $("exportBtn").addEventListener("click", () => {
+        if (!transactions.length) {
+          showToast("There are no transactions to export.");
+          return;
+        }
+        const headers = ["Date", "Type", "Description", "Category", "Amount (PKR)"];
+        const rows = transactions.slice().sort((a, b) => a.date.localeCompare(b.date)).map(t =>
+          [t.date, t.type, t.description, t.category, Number(t.amount).toFixed(2)]
+        );
+        const csvCell = value => `"${String(value).replace(/"/g, '""')}"`;
+        const csv = [headers, ...rows].map(row => row.map(csvCell).join(",")).join("\r\n");
+        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "business-transactions.csv";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        showToast("CSV report downloaded.");
+      });
+
+      $("date").value = today();
+      setType("income");
+      render();
+    })();
+  </script>
+</body>
+</html>
